@@ -7,6 +7,7 @@
 // nvcc hello-world.cu -L /usr/local/cuda/lib -lcudart -o hello-world
 
 #include <stdio.h>
+#include <unistd.h>
 
 const int N = 16; 
 const int blocksize = 16; 
