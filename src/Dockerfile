@@ -24,5 +24,6 @@ ENV LIBRARY_PATH=$LIBRARY_PATH:/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/l
 
 # Clone cuda-samples
 RUN git clone --depth 1 -b v12.5 https://github.com/NVIDIA/cuda-samples
+RUN cd /root/cuda-samples && make -j$(nproc)
 
 WORKDIR /workspace
