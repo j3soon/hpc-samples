@@ -19,7 +19,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /root
 
 # Set environment variables
-RUN echo 'export CUDA_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4' >> ~/.bashrc
+ENV CUDA_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4
+ENV LIBRARY_PATH=$LIBRARY_PATH:/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/lib64
 
 # Clone cuda-samples
 RUN git clone --depth 1 -b v12.5 https://github.com/NVIDIA/cuda-samples
