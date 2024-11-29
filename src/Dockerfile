@@ -16,4 +16,9 @@ RUN apt-get update && apt-get install -y \
     zip \
     && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /root
+
+# Clone cuda-samples
+RUN git clone --depth 1 -b v12.5 https://github.com/NVIDIA/cuda-samples
+
 WORKDIR /workspace
