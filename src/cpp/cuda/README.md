@@ -30,16 +30,6 @@ Refs:
 - https://github.com/NVIDIA/cuda-samples
 - https://github.com/NVIDIA/CUDALibrarySamples
 
-### CUDA Samples
-
-[NVIDIA/cuda-samples](https://github.com/NVIDIA/cuda-samples) is included in the docker image at `/root/cuda-samples`. For example, to run the `deviceQuery` example, you can run the following command:
-
-```sh
-~/cuda-samples/build/Samples/1_Utilities/deviceQuery/deviceQuery
-```
-
-See the full list of examples [here](https://github.com/NVIDIA/cuda-samples#samples-list).
-
 ## Tools
 
 ```
