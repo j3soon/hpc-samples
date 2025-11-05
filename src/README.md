@@ -9,8 +9,16 @@
 
 Follow [this post](https://tutorial.j3soon.com/docker/nvidia-gpu-support/) for the installation instructions.
 
+## Clone the repository
+
+```sh
+git clone https://github.com/j3soon/hpc-samples.git
+cd hpc-samples
+```
+
 ## Docker Environment
 
 ```sh
-docker build -t j3soon/hpc-notes .
+docker build -t j3soon/hpc-samples .
+docker run --rm -it --gpus all -v $PWD:/workspace j3soon/hpc-samples
 ```

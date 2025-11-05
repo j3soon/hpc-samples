@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/nvhpc:24.5-devel-cuda_multi-ubuntu22.04
+FROM nvcr.io/nvidia/nvhpc:25.9-devel-cuda13.0-ubuntu24.04
 
 # Common Tools
 RUN apt-get update && apt-get install -y \
@@ -19,11 +19,14 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /root
 
 # Set environment variables
-ENV CUDA_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4
-ENV LIBRARY_PATH=$LIBRARY_PATH:/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/lib64
+ENV CUDA_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/25.9/cuda/13.0
+ENV LIBRARY_PATH=$LIBRARY_PATH:/opt/nvidia/hpc_sdk/Linux_x86_64/25.9/math_libs/lib64
 
 # Clone cuda-samples
-RUN git clone --depth 1 -b v12.5 https://github.com/NVIDIA/cuda-samples
-RUN cd /root/cuda-samples && make -j$(nproc)
+RUN git clone --depth 1 -b v13.0 https://github.com/NVIDIA/cuda-samples
+RUN cd /root/cuda-samples \
+    && mkdir build && cd build \
+    && cmake .. \
+    && make -j$(nproc)
 
 WORKDIR /workspace
