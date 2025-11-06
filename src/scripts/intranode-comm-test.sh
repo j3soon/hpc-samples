@@ -22,6 +22,9 @@ nvidia-smi topo -m
 
 cd /workspace
 echo "Running p2pBandwidthLatencyTest..."
+# For CUDA 12.4
+./cuda-samples/bin/x86_64/linux/release/p2pBandwidthLatencyTest
+# For CUDA 13.0
 ./cuda-samples/build/Samples/5_Domain_Specific/p2pBandwidthLatencyTest/p2pBandwidthLatencyTest
 
 echo "Running nvbandwidth verbose mode..."
