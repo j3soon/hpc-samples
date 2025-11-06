@@ -22,7 +22,7 @@ We use the [`nvidia/nvhpc`](https://catalog.ngc.nvidia.com/orgs/nvidia/container
 
 ```sh
 docker build -t j3soon/hpc-samples .
-docker run --rm -it --gpus all -v $PWD:/workspace j3soon/hpc-samples
+docker run --rm -it --gpus all -v $PWD:/app j3soon/hpc-samples
 ```
 
 ## Examples
@@ -82,7 +82,79 @@ make all
 [NVIDIA/cuda-samples](https://github.com/NVIDIA/cuda-samples) has been pre-built and included in the docker image at `/root/cuda-samples`. For example, to run the `deviceQuery` example, you can run the following command:
 
 ```sh
-~/cuda-samples/build/Samples/1_Utilities/deviceQuery/deviceQuery
+/workspace/cuda-samples/build/Samples/1_Utilities/deviceQuery/deviceQuery
+```
+
+or the `p2pBandwidthLatencyTest` example to test the [GPU-to-GPU communication](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html#gpu-to-gpu-communication):
+
+```sh
+/workspace/cuda-samples/build/Samples/5_Domain_Specific/p2pBandwidthLatencyTest/p2pBandwidthLatencyTest
 ```
 
 See the full list of examples [here](https://github.com/NVIDIA/cuda-samples#samples-list).
+
+> If you are using a custom docker image, follow the official instructions:
+> ```sh
+> git clone https://github.com/NVIDIA/cuda-samples
+> cd cuda-samples
+> git checkout v13.0  # Replace with the CUDA version matching your image
+> mkdir build && cd build
+> cmake ..
+> make -j$(nproc)
+> ```
+> You might also need to set `CUDA_PATH` and `LIBRARY_PATH` according to your environment if the build fails.
+
+### NCCL Tests
+
+[NVIDIA/nccl-tests](https://github.com/NVIDIA/nccl-tests) has been pre-built and included in the docker image at `/root/nccl-tests`. For example, to run the `all_reduce_perf` test, you can run the following command:
+
+```sh
+# single node 8 GPUs
+/workspace/nccl-tests/build/all_reduce_perf -b 8 -e 128M -f 2 -g 8
+# two node 16 GPUs
+mpirun -np 16 -N 8 /workspace/nccl-tests/build/all_reduce_perf -b 8 -e 8G -f 2 -g 1
+```
+
+> If you are using a custom docker image, follow the official instructions:
+> ```sh
+> git clone https://github.com/NVIDIA/nccl-tests
+> cd nccl-tests
+> git checkout v2.17.6  # Replace with the NCCL version matching your image
+> make -j$(nproc)
+> make -j$(nproc) MPI=1 NAME_SUFFIX=_mpi
+> ```
+> You might also need to set `CUDA_HOME`, `NCCL_HOME`, and `MPI_HOME` according to your environment if the build fails.
+
+### CUDA Library Samples
+
+[NVIDIA/CUDALibrarySamples](https://github.com/NVIDIA/CUDALibrarySamples) is not yet included.
+
+### Compute Sanitizer Samples
+
+[NVIDIA/compute-sanitizer-samples](https://github.com/NVIDIA/compute-sanitizer-samples) is not yet included.
+
+## Tools
+
+### NVIDIA-SMI
+
+Use the [`nvidia-smi`](https://docs.nvidia.com/deploy/nvidia-smi/index.html) tool to query GPU status.
+
+Check local GPU [topology status](https://docs.nvidia.com/multi-node-nvlink-systems/mnnvl-user-guide/verifying.html#topology-status):
+
+```sh
+nvidia-smi topo -p2p n
+```
+
+Topology connections and affinities matrix between the GPUs and NICs in the system:
+
+```sh
+nvidia-smi topo -m
+```
+
+### Compute Sanitizer
+
+Use [`compute-sanitizer`](https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html) to detect CUDA errors.
+
+```sh
+compute-sanitizer ./a.out
+```

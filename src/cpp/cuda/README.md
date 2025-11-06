@@ -2,7 +2,7 @@
 
 ```sh
 # in docker container
-cd /workspace/cpp/cuda
+cd /app/cpp/cuda
 ```
 
 ## Examples
@@ -24,19 +24,3 @@ If there is no output from the first example, and the output is `Hello Hello` in
 ```sh
 nvcc -arch=native <SOURCE_FILE>
 ```
-
-Refs:
-
-- https://github.com/NVIDIA/cuda-samples
-- https://github.com/NVIDIA/CUDALibrarySamples
-
-## Tools
-
-```
-compute-sanitizer ./a.out
-```
-
-Refs:
-
-- https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html
-- https://github.com/NVIDIA/compute-sanitizer-samples
