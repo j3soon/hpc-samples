@@ -79,7 +79,7 @@ make all
 
 ### CUDA Samples
 
-[NVIDIA/cuda-samples](https://github.com/NVIDIA/cuda-samples) has been pre-built and included in the docker image at `/root/cuda-samples`. For example, to run the `deviceQuery` example, you can run the following command:
+[NVIDIA/cuda-samples](https://github.com/NVIDIA/cuda-samples) has been pre-built and included in the docker image at `/workspace/cuda-samples`. For example, to run the `deviceQuery` example, you can run the following command:
 
 ```sh
 /workspace/cuda-samples/build/Samples/1_Utilities/deviceQuery/deviceQuery
@@ -106,13 +106,14 @@ See the full list of examples [here](https://github.com/NVIDIA/cuda-samples#samp
 
 ### NCCL Tests
 
-[NVIDIA/nccl-tests](https://github.com/NVIDIA/nccl-tests) has been pre-built and included in the docker image at `/root/nccl-tests`. For example, to run the `all_reduce_perf` test, you can run the following command:
+[NVIDIA/nccl-tests](https://github.com/NVIDIA/nccl-tests) has been pre-built and included in the docker image at `/workspace/nccl-tests`. For example, to run the `all_reduce_perf` test, you can run the following command:
 
 ```sh
+cd /workspace/nccl-tests
 # single node 8 GPUs
-/workspace/nccl-tests/build/all_reduce_perf -b 8 -e 128M -f 2 -g 8
+./build/all_reduce_perf -b 8 -e 128M -f 2 -g 8
 # two node 16 GPUs
-mpirun -np 16 -N 8 /workspace/nccl-tests/build/all_reduce_perf -b 8 -e 8G -f 2 -g 1
+mpirun -np 16 -N 8 ./build/all_reduce_perf -b 8 -e 8G -f 2 -g 1
 ```
 
 > If you are using a custom docker image, follow the official instructions:
@@ -125,6 +126,38 @@ mpirun -np 16 -N 8 /workspace/nccl-tests/build/all_reduce_perf -b 8 -e 8G -f 2 -
 > ```
 > You might also need to set `CUDA_HOME`, `NCCL_HOME`, and `MPI_HOME` according to your environment if the build fails.
 
+### NVBandwidth
+
+[NVIDIA/nvbandwidth](https://github.com/NVIDIA/nvbandwidth) has been pre-built and included in the docker image at `/workspace/nvbandwidth`. For example, to run the `nvbandwidth` tool, you can run the following command:
+
+```sh
+cd /workspace/nvbandwidth
+./nvbandwidth -t device_to_device_memcpy_read_ce
+```
+
+or the multi-node version:
+
+```sh
+cd /workspace/nvbandwidth_mpi
+export OMPI_ALLOW_RUN_AS_ROOT=1
+export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+mpirun -n 4 ./nvbandwidth -p multinode
+```
+
+> If you are using a custom docker image, follow the official instructions:
+> ```sh
+> git clone https://github.com/NVIDIA/nvbandwidth
+> cd nvbandwidth
+> git checkout v0.8  # Replace with the NVBandwidth version matching your image
+> cp -r . ../nvbandwidth_mpi
+> apt-get update && apt-get install -y libboost-program-options-dev
+> cmake .
+> make -j$(nproc)
+> cd ../nvbandwidth_mpi
+> cmake -DMULTINODE=1 .
+> make -j$(nproc)
+> ```
+
 ### CUDA Library Samples
 
 [NVIDIA/CUDALibrarySamples](https://github.com/NVIDIA/CUDALibrarySamples) is not yet included.
@@ -132,6 +165,10 @@ mpirun -np 16 -N 8 /workspace/nccl-tests/build/all_reduce_perf -b 8 -e 8G -f 2 -
 ### Compute Sanitizer Samples
 
 [NVIDIA/compute-sanitizer-samples](https://github.com/NVIDIA/compute-sanitizer-samples) is not yet included.
+
+### Multi GPU Programming Models
+
+[NVIDIA/multi-gpu-programming-models](https://github.com/NVIDIA/multi-gpu-programming-models) is not yet included.
 
 ## Tools
 
