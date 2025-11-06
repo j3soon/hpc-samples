@@ -21,8 +21,11 @@ cd hpc-samples
 We use the [`nvidia/nvhpc`](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nvhpc/tags) NGC image as the base image. See [the documentation](https://docs.nvidia.com/hpc-sdk/hpc-sdk-container/index.html) for more details.
 
 ```sh
-docker build -t j3soon/hpc-samples .
-docker run --rm -it --gpus all -v $PWD:/app j3soon/hpc-samples
+docker build -f Dockerfile_cuda13.0 -t j3soon/hpc-samples:nvhpc-25.9-devel-cuda13.0-ubuntu24.04 .
+docker build -f Dockerfile_cuda12.4 -t j3soon/hpc-samples:nvhpc-24.5-devel-cuda12.4-ubuntu22.04 .
+
+docker run --rm -it --gpus all -v $PWD:/app j3soon/hpc-samples:nvhpc-25.9-devel-cuda13.0-ubuntu24.04
+docker run --rm -it --gpus all -v $PWD:/app j3soon/hpc-samples:nvhpc-24.5-devel-cuda12.4-ubuntu22.04
 ```
 
 ## Examples
