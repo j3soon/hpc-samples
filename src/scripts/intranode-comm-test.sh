@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LOGFILE="./intranode-comm-test.log"
+LOGFILE="./intranode-comm-test_$(date +%Y%m%d_%H%M%S_%N).log"
 mkdir -p "$(dirname "$LOGFILE")"
 
 # Redirect all output (stdout and stderr) to the log file
@@ -11,6 +11,14 @@ echo "===== Script started at $(date) ====="
 
 # Enable command tracing (so commands themselves are logged)
 set -x
+
+echo $NODE_NAME # in case running on K8s
+
+nvidia-smi
+
+nvidia-smi topo -p2p n
+
+nvidia-smi topo -m
 
 cd /workspace
 echo "Running p2pBandwidthLatencyTest..."

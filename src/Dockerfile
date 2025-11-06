@@ -50,3 +50,11 @@ RUN cd /workspace/nvbandwidth \
 RUN cd /workspace/nvbandwidth_mpi \
     && cmake -DMULTINODE=1 . \
     && make -j$(nproc)
+
+# Install Jupyter Lab for easy access
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --break-system-packages jupyterlab
+# Set default Jupyter Lab shell to bash
+ENV SHELL=/bin/bash
