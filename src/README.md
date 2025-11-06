@@ -116,6 +116,13 @@ cd /workspace/nccl-tests
 mpirun -np 16 -N 8 ./build/all_reduce_perf -b 8 -e 8G -f 2 -g 1
 ```
 
+or with [debug flags](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-debug-subsys):
+
+```sh
+cd /workspace/nccl-tests
+NCCL_DEBUG=INFO NCCL_DEBUG_SUBSYS=ALL ./build/all_reduce_perf -b 8 -e 128M -f 2 -g 8
+```
+
 > If you are using a custom docker image, follow the official instructions:
 > ```sh
 > git clone https://github.com/NVIDIA/nccl-tests
@@ -132,6 +139,18 @@ mpirun -np 16 -N 8 ./build/all_reduce_perf -b 8 -e 8G -f 2 -g 1
 
 ```sh
 cd /workspace/nvbandwidth
+./nvbandwidth
+```
+
+or verbose mode:
+
+```sh
+./nvbandwidth -v
+```
+
+or single test case:
+
+```sh
 ./nvbandwidth -t device_to_device_memcpy_read_ce
 ```
 
