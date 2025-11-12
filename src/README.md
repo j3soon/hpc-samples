@@ -116,7 +116,24 @@ cd /workspace/nccl-tests
 # single node 8 GPUs
 ./build/all_reduce_perf -b 8 -e 128M -f 2 -g 8
 # two node 16 GPUs
-mpirun -np 16 -N 8 ./build/all_reduce_perf_mpi -b 8 -e 8G -f 2 -g 1
+mpirun -np 16 -N 2 ./build/all_reduce_perf_mpi -b 8 -e 8G -f 2 -g 1
+```
+
+or with Slurm:
+
+```sh
+# Enroot+Pyxis
+srun -N 2 --ntasks-per-node=8 --mpi=pmix \
+  --container-image=j3soon/hpc-samples:nvhpc-24.5-devel-cuda12.4-ubuntu22.04 \
+  /usr/local/bin/hpcx-entrypoint.sh \
+  /workspace/nccl-tests/build/all_reduce_perf_mpi -b 8 -e 8G -f 2 -g 1
+# Apptainer/Singularity (To be confirmed)
+singularity pull docker://j3soon/hpc-samples:nvhpc-24.5-devel-cuda12.4-ubuntu22.04
+singularity build --sandbox hpc-samples-cuda12/ hpc-samples_nvhpc-24.5-devel-cuda12.4-ubuntu22.04.sif
+srun -N 2 --ntasks-per-node 8 --mpi=pmix --gres=gpu:8 \
+  singularity exec --nv hpc-samples-cuda12/ \
+  /usr/local/bin/hpcx-entrypoint.sh \
+  /workspace/nccl-tests/build/all_reduce_perf_mpi -b 8 -e 8G -f 2 -g 1
 ```
 
 or with [debug flags](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/env.html#nccl-debug-subsys):
@@ -125,12 +142,6 @@ or with [debug flags](https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/
 cd /workspace/nccl-tests
 NCCL_DEBUG=INFO NCCL_DEBUG_SUBSYS=ALL ./build/all_reduce_perf -b 8 -e 128M -f 2 -g 8
 ```
-
-> For multi-node tests, you may need to set the following according to [the documentation](https://docs.nvidia.com/hpc-sdk/hpc-sdk-release-notes/index.html#known-limitations-and-recommendations):
-> ```sh
-> source /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/comm_libs/12.4/hpcx/hpcx-2.19/hpcx-init.sh
-> hpcx_load
-> ```
 
 > If you are using a custom docker image, follow the official instructions:
 > ```sh
