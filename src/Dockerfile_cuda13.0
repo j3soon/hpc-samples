@@ -58,3 +58,14 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --break-system-packages jupyterlab
 # Set default Jupyter Lab shell to bash
 ENV SHELL=/bin/bash
+
+# Configure HPC-X environment for multi-node tests
+RUN cat <<'EOF' > /usr/local/bin/hpcx-entrypoint.sh
+#!/bin/bash
+source /opt/nvidia/hpc_sdk/Linux_x86_64/25.9/comm_libs/13.0/hpcx/hpcx-2.24/hpcx-init.sh
+hpcx_load
+exec /usr/local/bin/entrypoint.sh "$@"
+EOF
+RUN chmod +x /usr/local/bin/hpcx-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/hpcx-entrypoint.sh"]
