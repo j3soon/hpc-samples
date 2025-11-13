@@ -1,0 +1,71 @@
+FROM nvcr.io/nvidia/nvhpc:25.7-devel-cuda12.9-ubuntu24.04
+
+# Common Tools
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    htop \
+    iputils-ping \
+    nano \
+    net-tools \
+    plocate \
+    tmux \
+    tree \
+    unzip \
+    vim \
+    wget \
+    zip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# cuda-samples
+ENV CUDA_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/25.7/cuda/12.9
+ENV LIBRARY_PATH=$LIBRARY_PATH:/opt/nvidia/hpc_sdk/Linux_x86_64/25.7/math_libs/lib64
+RUN git clone --depth 1 -b v12.9 https://github.com/NVIDIA/cuda-samples
+RUN cd /workspace/cuda-samples \
+    && mkdir build && cd build \
+    && cmake .. \
+    && make -j$(nproc)
+
+# nccl-tests
+ENV CUDA_HOME=/opt/nvidia/hpc_sdk/Linux_x86_64/25.7/cuda/12.9
+ENV NCCL_HOME=/opt/nvidia/hpc_sdk/Linux_x86_64/25.7/comm_libs/12.9/nccl
+ENV MPI_HOME=/opt/nvidia/hpc_sdk/Linux_x86_64/25.7/comm_libs/12.9/hpcx/hpcx-2.22.1/ompi
+RUN git clone --depth 1 -b v2.17.6 https://github.com/NVIDIA/nccl-tests
+RUN cd /workspace/nccl-tests \
+    && make -j$(nproc)
+RUN cd /workspace/nccl-tests \
+    && make -j$(nproc) MPI=1 NAME_SUFFIX=_mpi
+
+# nvbandwidth
+RUN apt-get update && apt-get install -y \
+    libboost-program-options-dev \
+    && rm -rf /var/lib/apt/lists/*
+RUN git clone --depth 1 -b v0.8 https://github.com/NVIDIA/nvbandwidth
+RUN cp -r /workspace/nvbandwidth /workspace/nvbandwidth_mpi
+RUN cd /workspace/nvbandwidth \
+    && cmake . \
+    && make -j$(nproc)
+RUN cd /workspace/nvbandwidth_mpi \
+    && cmake -DMULTINODE=1 . \
+    && make -j$(nproc)
+
+# Install Jupyter Lab for easy access
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+RUN pip install --break-system-packages jupyterlab
+# Set default Jupyter Lab shell to bash
+ENV SHELL=/bin/bash
+
+# Configure HPC-X environment for multi-node tests
+RUN cat <<'EOF' > /usr/local/bin/hpcx-entrypoint.sh
+#!/bin/bash
+source /opt/nvidia/hpc_sdk/Linux_x86_64/25.7/comm_libs/12.9/hpcx/hpcx-2.22.1/hpcx-init.sh
+hpcx_load
+exec /usr/local/bin/entrypoint.sh "$@"
+EOF
+RUN chmod +x /usr/local/bin/hpcx-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/hpcx-entrypoint.sh"]
