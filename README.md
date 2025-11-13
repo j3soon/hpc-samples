@@ -238,3 +238,7 @@ Use [`compute-sanitizer`](https://docs.nvidia.com/compute-sanitizer/ComputeSanit
 ```sh
 compute-sanitizer ./a.out
 ```
+
+## Nsight Guided Profiling
+
+See [nsight-guided-profiling.md](nsight-guided-profiling.md) for more details.
