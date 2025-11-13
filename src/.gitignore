@@ -1,1 +1,4 @@
 *.out
+*.nsys-rep
+*.sqlite
+*.ncu-rep
