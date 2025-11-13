@@ -1,8 +1,8 @@
-# Source of HPC Notes
+# HPC Samples
 
 ## Prerequisites
 
-- Ubuntu 22.04
+- Ubuntu 22.04 or 24.04
 - [NVIDIA Driver](https://ubuntu.com/server/docs/nvidia-drivers-installation)
 - [Docker](https://docs.docker.com/engine/install/ubuntu/)
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
@@ -21,6 +21,8 @@ cd hpc-samples
 We use the [`nvidia/nvhpc`](https://catalog.ngc.nvidia.com/orgs/nvidia/containers/nvhpc/tags) NGC image as the base image. See [the documentation](https://docs.nvidia.com/hpc-sdk/hpc-sdk-container/index.html) for more details.
 
 ```sh
+cd src
+
 docker build -f Dockerfile_cuda13.0 -t j3soon/hpc-samples:nvhpc-25.9-devel-cuda13.0-ubuntu24.04 .
 docker build -f Dockerfile_cuda12.4 -t j3soon/hpc-samples:nvhpc-24.5-devel-cuda12.4-ubuntu22.04 .
 
