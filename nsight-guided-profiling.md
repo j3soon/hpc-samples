@@ -148,3 +148,9 @@ If you don't have an environment, download the reports from [here](https://githu
   * Summary: Long Scoreboard Stalls (Est. Speedup: 2.24%)
 
 The main performance bottleneck is due to Long Scoreboard Stalls. Further optimizations could explore advanced CUDA features such as LDGSTS and TMA instructions.
+
+## References
+
+- [Optimizing Parallel Reduction in CUDA by Mark Harris](https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf)
+- [Introduction to CUDA Programming and Performance Optimization](https://www.nvidia.com/en-us/on-demand/session/gtc24-s62191/)
+- [Using CUDA Warp-Level Primitives](https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/)
