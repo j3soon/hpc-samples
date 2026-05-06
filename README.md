@@ -23,10 +23,12 @@ We use the [`nvidia/nvhpc`](https://catalog.ngc.nvidia.com/orgs/nvidia/container
 ```sh
 cd src
 
+docker build -f Dockerfile_cuda13.1 -t j3soon/hpc-samples:nvhpc-26.3-devel-cuda13.1-ubuntu24.04 .
 docker build -f Dockerfile_cuda13.0 -t j3soon/hpc-samples:nvhpc-25.9-devel-cuda13.0-ubuntu24.04 .
 docker build -f Dockerfile_cuda12.9 -t j3soon/hpc-samples:nvhpc-25.7-devel-cuda12.9-ubuntu24.04 .
 docker build -f Dockerfile_cuda12.4 -t j3soon/hpc-samples:nvhpc-24.5-devel-cuda12.4-ubuntu22.04 .
 
+docker run --rm -it --gpus all -v $PWD:/app j3soon/hpc-samples:nvhpc-26.3-devel-cuda13.1-ubuntu24.04
 docker run --rm -it --gpus all -v $PWD:/app j3soon/hpc-samples:nvhpc-25.9-devel-cuda13.0-ubuntu24.04
 docker run --rm -it --gpus all -v $PWD:/app j3soon/hpc-samples:nvhpc-25.7-devel-cuda12.9-ubuntu24.04
 docker run --rm -it --gpus all -v $PWD:/app j3soon/hpc-samples:nvhpc-24.5-devel-cuda12.4-ubuntu22.04
