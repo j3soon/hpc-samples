@@ -25,20 +25,31 @@ Inside the container:
 
 ```sh
 python 01_pytorch_basic.py
+python 02_pytorch_batch.py
 ```
 
 ## Profile
 
-Inside the container:
+Inside the container, follow the nsys [command line examples](https://docs.nvidia.com/nsight-systems/UserGuide/index.html#example-single-command-lines) and [python profiling](https://docs.nvidia.com/nsight-systems/UserGuide/index.html#python-profiling):
 
 ```sh
 mkdir -p profiles
 
+FILE=01_pytorch_basic
 nsys profile \
-  --trace=cuda,nvtx,osrt \
-  --output=./profiles/01_pytorch_basic.nsys-rep \
-  --force-overwrite=true \
-  python 01_pytorch_basic.py
+  --cudabacktrace=none \
+  --output=./profiles/${FILE}.nsys-rep \
+  python ${FILE}.py
 ```
+
+<!--
+```sh
+nsys profile \
+  --trace=cuda,cudnn,cublas,osrt,nvtx,python-gil --pytorch=functions-trace,autograd-nvtx,autograd-shapes-nvtx \
+  --cudabacktrace=all --python-backtrace=cuda --python-sampling=true \
+  --output=./profiles/${FILE}.nsys-rep \
+  python ${FILE}.py
+```
+-->
 
 For more `nsys` flags, see the [documentation](https://docs.nvidia.com/nsight-systems/UserGuide/index.html#cli-profile-command-switch-options).

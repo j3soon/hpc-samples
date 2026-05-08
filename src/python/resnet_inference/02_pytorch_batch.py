@@ -11,9 +11,10 @@ from imagenetv2_pytorch import ImageNetV2Dataset
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="01 Basic PyTorch ResNet152 inference")
+    parser = argparse.ArgumentParser(description="02 Batched PyTorch ResNet152 inference")
     parser.add_argument("--data-dir", default="./data", help="Directory for ImageNet-V2 download/cache")
-    parser.add_argument("--batch-size", type=int, default=1, help="Batch size for inference")
+    # TODO: Tune on L40
+    parser.add_argument("--batch-size", type=int, default=128, help="Batch size for inference")
     parser.add_argument("--num-workers", type=int, default=4, help="DataLoader worker processes")
     return parser.parse_args()
 
