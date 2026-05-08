@@ -26,6 +26,7 @@ Inside the container:
 ```sh
 python 01_pytorch_basic.py
 python 02_pytorch_batch.py
+python 03_pytorch_gpu_accum.py
 ```
 
 ## Profile
@@ -35,11 +36,18 @@ Inside the container, follow the nsys [command line examples](https://docs.nvidi
 ```sh
 mkdir -p profiles
 
-FILE=01_pytorch_basic
-nsys profile \
-  --cudabacktrace=none \
-  --output=./profiles/${FILE}.nsys-rep \
-  python ${FILE}.py
+FILES=(
+  01_pytorch_basic
+  02_pytorch_batch
+  03_pytorch_gpu_accum
+)
+
+for FILE in "${FILES[@]}"; do
+  nsys profile \
+    --cudabacktrace=none \
+    --output=./profiles/${FILE}.nsys-rep \
+    python ${FILE}.py
+done
 ```
 
 <!--
