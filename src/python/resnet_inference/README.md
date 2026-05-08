@@ -27,6 +27,7 @@ Inside the container:
 python 01_pytorch_basic.py
 python 02_pytorch_batch.py
 python 03_pytorch_gpu_accum.py
+python 04_pytorch_loader_tuning.py
 ```
 
 ## Profile
@@ -40,6 +41,7 @@ FILES=(
   01_pytorch_basic
   02_pytorch_batch
   03_pytorch_gpu_accum
+  04_pytorch_loader_tuning
 )
 
 for FILE in "${FILES[@]}"; do
