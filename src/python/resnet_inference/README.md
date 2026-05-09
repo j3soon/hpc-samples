@@ -28,6 +28,8 @@ python 01_pytorch_basic.py
 python 02_pytorch_batch.py
 python 03_pytorch_loader_tuning.py
 python 04_pytorch_non_blocking.py
+python 05_pytorch_gpu_accum.py
+python 06_pytorch_cuda_stream.py
 ```
 
 ## Profile
@@ -42,6 +44,8 @@ FILES=(
   02_pytorch_batch
   03_pytorch_loader_tuning
   04_pytorch_non_blocking
+  05_pytorch_gpu_accum
+  06_pytorch_cuda_stream
 )
 
 for FILE in "${FILES[@]}"; do
@@ -55,7 +59,7 @@ done
 <!--
 ```sh
 nsys profile \
-  --trace=cuda,cudnn,cublas,osrt,nvtx,python-gil --pytorch=functions-trace,autograd-nvtx,autograd-shapes-nvtx \
+  --trace=cuda,cudnn,cublas,osrt,nvtx,python-gil --pytorch=functions-trace,autograd-shapes-nvtx \
   --cudabacktrace=all --python-backtrace=cuda --python-sampling=true \
   --output=./profiles/${FILE}.nsys-rep \
   python ${FILE}.py
