@@ -39,7 +39,8 @@ class DataPrefetcher:
 
     def preload(self):
         try:
-            self.next_images, self.next_targets = next(self.loader)
+            with nvtx.annotate("dataloader_next"):
+                self.next_images, self.next_targets = next(self.loader)
         except StopIteration:
             self.next_images = None
             self.next_targets = None

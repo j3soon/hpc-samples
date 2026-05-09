@@ -9,14 +9,15 @@ This sample uses the [NVIDIA PyTorch NGC image](https://catalog.ngc.nvidia.com/o
 ```sh
 cd src/python/resnet_inference
 
-docker build -t j3soon/hpc-samples:resnet-inference .
+docker build -f Dockerfile_25_06 -t j3soon/hpc-samples:resnet-inference-25.06 .
+docker build -f Dockerfile_26_04 -t j3soon/hpc-samples:resnet-inference-26.04 .
 
 docker run --rm -it --gpus all \
   --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 \
   --cap-add=SYS_ADMIN \
   -v $PWD:/workspace \
   -v .cache:/root/.cache \
-  j3soon/hpc-samples:resnet-inference
+  j3soon/hpc-samples:resnet-inference-26.04
 ```
 
 ## Run
