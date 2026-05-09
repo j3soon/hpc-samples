@@ -1,21 +1,17 @@
-import argparse
 import os
 import time
 
 import nvtx
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 from torchvision.models import ResNet152_Weights, resnet152
 from imagenetv2_pytorch import ImageNetV2Dataset
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(description="01 Basic PyTorch ResNet152 inference")
-    parser.add_argument("--data-dir", default="./data", help="Directory for ImageNet-V2 download/cache")
-    parser.add_argument("--batch-size", type=int, default=1, help="Batch size for inference")
-    parser.add_argument("--num-workers", type=int, default=4, help="DataLoader worker processes")
-    return parser.parse_args()
+DATA_DIR = "./data"
+MAX_IMAGES = 32
+WARMUP_RUNS = 3
 
 
 # Ref: https://pytorch.org/hub/pytorch_vision_resnet/
@@ -31,28 +27,27 @@ def imagenet_preprocess():
 
 
 def main():
-    args = parse_args()
     assert torch.cuda.is_available(), "CUDA required."
 
     device = torch.device("cuda")
     print(f"device: {torch.cuda.get_device_name(device)}")
-    print(f"batch size: {args.batch_size}")
 
     model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1).to(device).eval()
-    os.makedirs(args.data_dir, exist_ok=True)
+    os.makedirs(DATA_DIR, exist_ok=True)
     dataset = ImageNetV2Dataset(
         variant="matched-frequency",
         transform=imagenet_preprocess(),
-        location=args.data_dir,
+        location=DATA_DIR,
     )
-    loader = DataLoader(
-        dataset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=args.num_workers,
-        pin_memory=True,
-        persistent_workers=args.num_workers > 0,
-    )
+    dataset = Subset(dataset, range(MAX_IMAGES))
+    loader = DataLoader(dataset, shuffle=False)
+
+    dummy = torch.randn(1, 3, 224, 224, device=device)
+    with torch.inference_mode():
+        with nvtx.annotate("warmup"):
+            for _ in range(WARMUP_RUNS):
+                model(dummy)
+    torch.cuda.synchronize()
 
     top1_correct = 0
     top5_correct = 0
@@ -64,8 +59,8 @@ def main():
 
         for images, targets in loader:
             with nvtx.annotate("h2d_transfer"):
-                images = images.to(device, non_blocking=True)
-                targets = targets.to(device, non_blocking=True)
+                images = images.to(device)
+                targets = targets.to(device)
 
             with nvtx.annotate("forward_pass"):
                 logits = model(images)
@@ -85,7 +80,7 @@ def main():
     top5 = 100.0 * top5_correct / n_samples
 
     print(f"images: {n_samples}")
-    print(f"total latency: {latency_ms:.3f} ms")
+    print(f"latency for {n_samples} images: {latency_ms:.3f} ms")
     print(f"throughput: {fps:.2f} img/s")
     print(f"top-1: {top1:.2f}%")
     print(f"top-5: {top5:.2f}%")
