@@ -24,14 +24,14 @@ docker run --rm -it --gpus all \
 Inside the container:
 
 ```sh
-python 01_pytorch_basic.py
-python 02_pytorch_batch.py
-python 03_pytorch_loader_tuning.py
-python 04_pytorch_non_blocking.py
-python 05_pytorch_gpu_accum.py
-python 06_pytorch_cuda_stream.py
-TORCH_LOGS="cudagraphs,recompiles" python 07-1_pytorch_compile.py
-TORCH_LOGS="cudagraphs,recompiles" python 07-2_pytorch_cuda_graph_fix.py
+python 01_base.py
+python 02_batch.py
+python 03_dataloader_tuning.py
+python 04_non_blocking_copy.py
+python 05_gpu_accum.py
+python 06_cuda_stream_prefetch.py
+TORCH_LOGS="cudagraphs,recompiles" python 07_1_torch_compile.py
+TORCH_LOGS="cudagraphs,recompiles" python 07_2_cuda_graph_fix.py
 ```
 
 ## Profile
@@ -42,14 +42,14 @@ Inside the container, follow the nsys [command line examples](https://docs.nvidi
 mkdir -p profiles
 
 FILES=(
-  01_pytorch_basic
-  02_pytorch_batch
-  03_pytorch_loader_tuning
-  04_pytorch_non_blocking
-  05_pytorch_gpu_accum
-  06_pytorch_cuda_stream
-  07-1_pytorch_compile
-  07-2_pytorch_cuda_graph_fix
+  01_base
+  02_batch
+  03_dataloader_tuning
+  04_non_blocking_copy
+  05_gpu_accum
+  06_cuda_stream_prefetch
+  07_1_torch_compile
+  07_2_cuda_graph_fix
 )
 
 for FILE in "${FILES[@]}"; do
