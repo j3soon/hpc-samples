@@ -30,7 +30,8 @@ python 03_pytorch_loader_tuning.py
 python 04_pytorch_non_blocking.py
 python 05_pytorch_gpu_accum.py
 python 06_pytorch_cuda_stream.py
-python 07_pytorch_compile.py
+TORCH_LOGS="cudagraphs,recompiles" python 07-1_pytorch_compile.py
+TORCH_LOGS="cudagraphs,recompiles" python 07-2_pytorch_cuda_graph_fix.py
 ```
 
 ## Profile
@@ -47,7 +48,8 @@ FILES=(
   04_pytorch_non_blocking
   05_pytorch_gpu_accum
   06_pytorch_cuda_stream
-  07_pytorch_compile
+  07-1_pytorch_compile
+  07-2_pytorch_cuda_graph_fix
 )
 
 for FILE in "${FILES[@]}"; do
