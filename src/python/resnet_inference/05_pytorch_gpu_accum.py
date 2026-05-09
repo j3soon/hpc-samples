@@ -10,8 +10,10 @@ from imagenetv2_pytorch import ImageNetV2Dataset
 
 
 DATA_DIR = "./data"
-MAX_IMAGES = 1024
+MAX_IMAGES = 10000
 BATCH_SIZE = 128
+NUM_WORKERS = 8
+PREFETCH_FACTOR = 4
 WARMUP_RUNS = 3
 
 
@@ -33,6 +35,8 @@ def main():
     device = torch.device("cuda")
     print(f"device: {torch.cuda.get_device_name(device)}")
     print(f"batch size: {BATCH_SIZE}")
+    print(f"num workers: {NUM_WORKERS}")
+    print(f"prefetch factor: {PREFETCH_FACTOR}")
 
     model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1).to(device).eval()
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -42,7 +46,15 @@ def main():
         location=DATA_DIR,
     )
     dataset = Subset(dataset, range(MAX_IMAGES))
-    loader = DataLoader(dataset, shuffle=False, batch_size=BATCH_SIZE)
+    loader = DataLoader(
+        dataset,
+        shuffle=False,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+        pin_memory=True,
+        persistent_workers=True,
+        prefetch_factor=PREFETCH_FACTOR,
+    )
 
     dummy = torch.randn(BATCH_SIZE, 3, 224, 224, device=device)
     with torch.inference_mode():
@@ -51,8 +63,8 @@ def main():
                 model(dummy)
     torch.cuda.synchronize()
 
-    top1_correct = 0
-    top5_correct = 0
+    top1_correct_gpu = torch.zeros((), device=device)
+    top5_correct_gpu = torch.zeros((), device=device)
 
     with torch.inference_mode():
         torch.cuda.synchronize()
@@ -60,8 +72,8 @@ def main():
 
         for images, targets in loader:
             with nvtx.annotate("h2d_transfer"):
-                images = images.to(device)
-                targets = targets.to(device)
+                images = images.to(device, non_blocking=True)
+                targets = targets.to(device, non_blocking=True)
 
             with nvtx.annotate("forward_pass"):
                 logits = model(images)
@@ -69,14 +81,16 @@ def main():
             with nvtx.annotate("accuracy"):
                 _, pred = logits.topk(5, dim=1)
                 matches = pred.eq(targets.view(-1, 1))
-                top1_correct += matches[:, :1].sum().item()
-                top5_correct += matches.sum().item()
+                top1_correct_gpu += matches[:, :1].sum()
+                top5_correct_gpu += matches.sum()
 
         torch.cuda.synchronize()
         elapsed_s = time.perf_counter() - start
 
     latency_ms = elapsed_s * 1000.0
     fps = len(dataset) / elapsed_s
+    top1_correct = top1_correct_gpu.item()
+    top5_correct = top5_correct_gpu.item()
     top1 = 100.0 * top1_correct / len(dataset)
     top5 = 100.0 * top5_correct / len(dataset)
 

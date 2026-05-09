@@ -51,7 +51,6 @@ def main():
 
     top1_correct = 0
     top5_correct = 0
-    n_samples = 0
 
     with torch.inference_mode():
         torch.cuda.synchronize()
@@ -65,22 +64,22 @@ def main():
             with nvtx.annotate("forward_pass"):
                 logits = model(images)
 
-            _, pred = logits.topk(5, dim=1)
-            matches = pred.eq(targets.view(-1, 1))
-            top1_correct += matches[:, :1].sum().item()
-            top5_correct += matches.sum().item()
-            n_samples += targets.numel()
+            with nvtx.annotate("accuracy"):
+                _, pred = logits.topk(5, dim=1)
+                matches = pred.eq(targets.view(-1, 1))
+                top1_correct += matches[:, :1].sum().item()
+                top5_correct += matches.sum().item()
 
         torch.cuda.synchronize()
         elapsed_s = time.perf_counter() - start
 
     latency_ms = elapsed_s * 1000.0
-    fps = n_samples / elapsed_s
-    top1 = 100.0 * top1_correct / n_samples
-    top5 = 100.0 * top5_correct / n_samples
+    fps = len(dataset) / elapsed_s
+    top1 = 100.0 * top1_correct / len(dataset)
+    top5 = 100.0 * top5_correct / len(dataset)
 
-    print(f"images: {n_samples}")
-    print(f"latency for {n_samples} images: {latency_ms:.3f} ms")
+    print(f"images: {len(dataset)}")
+    print(f"latency for {len(dataset)} images: {latency_ms:.3f} ms")
     print(f"throughput: {fps:.2f} img/s")
     print(f"top-1: {top1:.2f}%")
     print(f"top-5: {top5:.2f}%")
