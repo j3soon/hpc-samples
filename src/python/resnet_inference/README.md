@@ -28,18 +28,18 @@ Inside the container:
 python 01_base.py
 python 02_batch.py
 python 03_dataloader_tuning.py
-python 04_non_blocking_copy.py
-python 05_gpu_accum.py
-python 06_cuda_stream_prefetch.py
-TORCH_LOGS="cudagraphs,recompiles" python 07_1_torch_compile.py
-TORCH_LOGS="cudagraphs,recompiles" python 07_2_cuda_graph_fix.py
-TORCH_LOGS="cudagraphs,recompiles" python 07_3_benchmark.py
-TORCH_LOGS="cudagraphs,recompiles" python 08_1_amp_fp32.py
-TORCH_LOGS="cudagraphs,recompiles" python 08_2_amp_tf32.py
-TORCH_LOGS="cudagraphs,recompiles" python 08_3_amp_bf16.py
-TORCH_LOGS="cudagraphs,recompiles" python 08_4_amp_fp16.py
-python 09_1_tensorrt_fp16.py
-python 09_2_tensorrt_best.py
+python 04_1_non_blocking_h2d.py
+python 04_2_gpu_accuracy_accum.py
+python 05_cuda_stream_prefetch.py
+TORCH_LOGS="cudagraphs,recompiles" python 06_1_torch_compile.py
+TORCH_LOGS="cudagraphs,recompiles" python 06_2_cuda_graph_fix.py
+TORCH_LOGS="cudagraphs,recompiles" python 06_3_benchmark.py
+TORCH_LOGS="cudagraphs,recompiles" python 07_1_amp_fp32.py
+TORCH_LOGS="cudagraphs,recompiles" python 07_2_amp_tf32.py
+TORCH_LOGS="cudagraphs,recompiles" python 07_3_amp_bf16.py
+TORCH_LOGS="cudagraphs,recompiles" python 07_4_amp_fp16.py
+python 08_1_tensorrt_fp16.py
+python 08_2_tensorrt_best.py
 ```
 
 ## Profile
@@ -53,18 +53,18 @@ FILES=(
   01_base
   02_batch
   03_dataloader_tuning
-  04_non_blocking_copy
-  05_gpu_accum
-  06_cuda_stream_prefetch
-  07_1_torch_compile
-  07_2_cuda_graph_fix
-  07_3_benchmark
-  08_1_amp_fp32
-  08_2_amp_tf32
-  08_3_amp_bf16
-  08_4_amp_fp16
-  09_1_tensorrt_fp16
-  09_2_tensorrt_best
+  04_1_non_blocking_h2d
+  04_2_gpu_accuracy_accum
+  05_cuda_stream_prefetch
+  06_1_torch_compile
+  06_2_cuda_graph_fix
+  06_3_benchmark
+  07_1_amp_fp32
+  07_2_amp_tf32
+  07_3_amp_bf16
+  07_4_amp_fp16
+  08_1_tensorrt_fp16
+  08_2_tensorrt_best
 )
 
 for FILE in "${FILES[@]}"; do
