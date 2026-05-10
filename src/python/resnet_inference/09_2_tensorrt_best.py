@@ -23,8 +23,8 @@ MAX_IMAGES = BATCH_SIZE * 5
 NUM_WORKERS = 8
 PREFETCH_FACTOR = 2
 WARMUP_RUNS = 3
-ONNX_PATH = Path(RESULTS_DIR) / "resnet152_bs64.onnx"
-ENGINE_PATH = Path(RESULTS_DIR) / "resnet152_bs64_fp16.engine"
+ONNX_PATH = Path(RESULTS_DIR) / f"resnet152_bs{BATCH_SIZE}.onnx"
+ENGINE_PATH = Path(RESULTS_DIR) / f"resnet152_bs{BATCH_SIZE}_best.engine"
 
 
 # Ref: https://pytorch.org/hub/pytorch_vision_resnet/
@@ -118,7 +118,7 @@ def build_engine():
         trtexec,
         f"--onnx={ONNX_PATH}",
         f"--saveEngine={ENGINE_PATH}",
-        "--fp16",
+        "--best",
         "--skipInference",
     ]
     subprocess.run(cmd, check=True)
@@ -183,7 +183,7 @@ def main():
     print(f"batch size: {BATCH_SIZE}")
     print(f"num workers: {NUM_WORKERS}")
     print(f"prefetch factor: {PREFETCH_FACTOR}")
-    print("backend: onnx/tensorrt fp16")
+    print("backend: onnx/tensorrt best")
 
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(RESULTS_DIR, exist_ok=True)

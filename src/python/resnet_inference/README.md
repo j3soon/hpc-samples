@@ -33,10 +33,13 @@ python 05_gpu_accum.py
 python 06_cuda_stream_prefetch.py
 TORCH_LOGS="cudagraphs,recompiles" python 07_1_torch_compile.py
 TORCH_LOGS="cudagraphs,recompiles" python 07_2_cuda_graph_fix.py
+TORCH_LOGS="cudagraphs,recompiles" python 07_3_benchmark.py
 TORCH_LOGS="cudagraphs,recompiles" python 08_1_amp_fp32.py
 TORCH_LOGS="cudagraphs,recompiles" python 08_2_amp_tf32.py
 TORCH_LOGS="cudagraphs,recompiles" python 08_3_amp_bf16.py
 TORCH_LOGS="cudagraphs,recompiles" python 08_4_amp_fp16.py
+python 09_1_tensorrt_fp16.py
+python 09_2_tensorrt_best.py
 ```
 
 ## Profile
@@ -55,10 +58,13 @@ FILES=(
   06_cuda_stream_prefetch
   07_1_torch_compile
   07_2_cuda_graph_fix
+  07_3_benchmark
   08_1_amp_fp32
   08_2_amp_tf32
   08_3_amp_bf16
   08_4_amp_fp16
+  09_1_tensorrt_fp16
+  09_2_tensorrt_best
 )
 
 for FILE in "${FILES[@]}"; do
