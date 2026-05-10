@@ -67,10 +67,9 @@ def main():
     top5_correct = 0
 
     with torch.inference_mode():
-        torch.cuda.synchronize()
-        start = time.perf_counter()
+        def run_batch(images, targets):
+            nonlocal top1_correct, top5_correct
 
-        for images, targets in loader:
             with nvtx.annotate("h2d_transfer"):
                 images = images.to(device)
                 targets = targets.to(device)
@@ -84,16 +83,28 @@ def main():
                 top1_correct += matches[:, :1].sum().item()
                 top5_correct += matches.sum().item()
 
+        loader_iter = iter(loader)
+        with nvtx.annotate("first_batch"):
+            images, targets = next(loader_iter)
+            run_batch(images, targets)
+
+        torch.cuda.synchronize()
+        start = time.perf_counter()
+
+        for images, targets in loader_iter:
+            run_batch(images, targets)
+
         torch.cuda.synchronize()
         elapsed_s = time.perf_counter() - start
 
     latency_ms = elapsed_s * 1000.0
-    fps = len(dataset) / elapsed_s
+    timed_images = len(dataset) - BATCH_SIZE
+    fps = timed_images / elapsed_s
     top1 = 100.0 * top1_correct / len(dataset)
     top5 = 100.0 * top5_correct / len(dataset)
 
     print(f"images: {len(dataset)}")
-    print(f"latency for {len(dataset)} images: {latency_ms:.3f} ms")
+    print(f"latency for {timed_images} images: {latency_ms:.3f} ms")
     print(f"throughput: {fps:.2f} img/s")
     print(f"top-1: {top1:.2f}%")
     print(f"top-5: {top5:.2f}%")
