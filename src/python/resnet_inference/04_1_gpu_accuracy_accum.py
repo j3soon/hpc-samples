@@ -63,16 +63,16 @@ def main():
                 model(dummy)
     torch.cuda.synchronize()
 
-    top1_correct = 0
-    top5_correct = 0
+    top1_correct_gpu = torch.zeros((), device=device)
+    top5_correct_gpu = torch.zeros((), device=device)
 
     with torch.inference_mode():
         def run_batch(images, targets):
-            nonlocal top1_correct, top5_correct
+            nonlocal top1_correct_gpu, top5_correct_gpu
 
             with nvtx.annotate("h2d_transfer"):
-                images = images.to(device, non_blocking=True)
-                targets = targets.to(device, non_blocking=True)
+                images = images.to(device)
+                targets = targets.to(device)
 
             with nvtx.annotate("forward_pass"):
                 logits = model(images)
@@ -80,8 +80,8 @@ def main():
             with nvtx.annotate("accuracy"):
                 _, pred = logits.topk(5, dim=1)
                 matches = pred.eq(targets.view(-1, 1))
-                top1_correct += matches[:, :1].sum().item()
-                top5_correct += matches.sum().item()
+                top1_correct_gpu += matches[:, :1].sum()
+                top5_correct_gpu += matches.sum()
 
         loader_iter = iter(loader)
         with nvtx.annotate("first_batch"):
@@ -100,6 +100,8 @@ def main():
     latency_ms = elapsed_s * 1000.0
     timed_images = len(dataset) - BATCH_SIZE
     fps = timed_images / elapsed_s
+    top1_correct = top1_correct_gpu.item()
+    top5_correct = top5_correct_gpu.item()
     top1 = 100.0 * top1_correct / len(dataset)
     top5 = 100.0 * top5_correct / len(dataset)
 

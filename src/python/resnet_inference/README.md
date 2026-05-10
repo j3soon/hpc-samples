@@ -28,8 +28,8 @@ Inside the container:
 python 01_base.py
 python 02_batch.py
 python 03_dataloader_tuning.py
-python 04_1_non_blocking_h2d.py
-python 04_2_gpu_accuracy_accum.py
+python 04_1_gpu_accuracy_accum.py
+python 04_2_non_blocking_h2d.py
 python 05_cuda_stream_prefetch.py
 TORCH_LOGS="cudagraphs,recompiles" python 06_1_torch_compile.py
 TORCH_LOGS="cudagraphs,recompiles" python 06_2_cuda_graph_fix.py
@@ -53,8 +53,8 @@ FILES=(
   01_base
   02_batch
   03_dataloader_tuning
-  04_1_non_blocking_h2d
-  04_2_gpu_accuracy_accum
+  04_1_gpu_accuracy_accum
+  04_2_non_blocking_h2d
   05_cuda_stream_prefetch
   06_1_torch_compile
   06_2_cuda_graph_fix
