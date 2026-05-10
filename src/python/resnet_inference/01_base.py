@@ -10,7 +10,7 @@ from imagenetv2_pytorch import ImageNetV2Dataset
 
 
 DATA_DIR = "./data"
-MAX_IMAGES = 32
+MAX_IMAGES = 5
 WARMUP_RUNS = 3
 
 

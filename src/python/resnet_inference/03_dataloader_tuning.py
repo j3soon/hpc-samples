@@ -10,8 +10,8 @@ from imagenetv2_pytorch import ImageNetV2Dataset
 
 
 DATA_DIR = "./data"
-MAX_IMAGES = 10000
 BATCH_SIZE = 64
+MAX_IMAGES = BATCH_SIZE * 5
 NUM_WORKERS = 8
 PREFETCH_FACTOR = 2
 WARMUP_RUNS = 3
