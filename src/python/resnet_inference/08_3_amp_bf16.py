@@ -9,6 +9,8 @@ from torchvision import transforms
 from torchvision.models import ResNet152_Weights, resnet152
 from imagenetv2_pytorch import ImageNetV2Dataset
 
+torch.backends.cudnn.benchmark = True
+
 
 DATA_DIR = "./data"
 BATCH_SIZE = 64

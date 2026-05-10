@@ -18,7 +18,6 @@ MAX_IMAGES = BATCH_SIZE * 5
 NUM_WORKERS = 8
 PREFETCH_FACTOR = 2
 WARMUP_RUNS = 3
-AMP_DTYPE = torch.float16
 
 
 # Ref: https://pytorch.org/hub/pytorch_vision_resnet/
@@ -87,7 +86,6 @@ def main():
     print(f"batch size: {BATCH_SIZE}")
     print(f"num workers: {NUM_WORKERS}")
     print(f"prefetch factor: {PREFETCH_FACTOR}")
-    print(f"amp dtype: {AMP_DTYPE}")
 
     model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1).to(device).eval()
     # Ref: https://docs.pytorch.org/docs/2.11/generated/torch.compile.html?utm_source=chatgpt.com
@@ -114,8 +112,7 @@ def main():
         dummy = torch.randn(BATCH_SIZE, 3, 224, 224, device=device)
         with nvtx.annotate("warmup"):
             for _ in range(WARMUP_RUNS):
-                with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
-                    model(dummy)
+                model(dummy)
     torch.cuda.synchronize()
 
     top1_correct_gpu = torch.zeros((), device=device)
@@ -126,8 +123,7 @@ def main():
             nonlocal top1_correct_gpu, top5_correct_gpu
 
             with nvtx.annotate("forward_pass"):
-                with torch.autocast(device_type="cuda", dtype=AMP_DTYPE):
-                    logits = model(images)
+                logits = model(images)
 
             with nvtx.annotate("accuracy"):
                 _, pred = logits.topk(5, dim=1)
