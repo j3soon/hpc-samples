@@ -149,6 +149,22 @@ If you don't have an environment, download the reports from [here](https://githu
 
 The main performance bottleneck is due to Long Scoreboard Stalls. Further optimizations could explore advanced CUDA features such as LDGSTS and TMA instructions.
 
+**Runtime statistics summary**:
+
+| File | Runtime |
+| --- | --- |
+| `01_atomic_add_gmem.cu` | 653.09 ms |
+| `02_atomic_add_smem.cu` | 164.72 ms |
+| `03_interleaved_addressing.cu` | 27.00 ms |
+| `04_interleaved_addressing_non_divergent.cu` | 20.98 ms |
+| `05_sequential_addressing.cu` | 17.95 ms |
+| `06_first_add_during_load.cu` | 9.28 ms |
+| `07_unroll_last_warp.cu` | 5.05 ms |
+| `08_complete_unroll.cu` | 4.88 ms |
+| `09_warp_shuffle.cu` | 4.79 ms |
+| `10_grid_stride_loop.cu` | 4.78 ms |
+| `11_grid_size.cu` | 4.75 ms |
+
 ## References
 
 - [Optimizing Parallel Reduction in CUDA by Mark Harris](https://developer.download.nvidia.com/assets/cuda/files/reduction.pdf)
