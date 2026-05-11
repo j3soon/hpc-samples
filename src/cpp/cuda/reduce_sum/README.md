@@ -89,7 +89,7 @@ and run all tests:
 ./test_all.sh
 ```
 
-If you don't have an environment, download the reports from [here](https://github.com/j3soon/hpc-samples/releases).
+If you don't have an environment, download the `reduce_sum_L40_results.zip` reports from [here](https://github.com/j3soon/hpc-samples/releases).
 
 - [01_atomic_add_gmem.cu](src/cpp/cuda/reduce_sum/01_atomic_add_gmem.cu) (653.09 ms)
 

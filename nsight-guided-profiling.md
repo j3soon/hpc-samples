@@ -1,3 +1,4 @@
 # Nsight Guided Profiling
 
-> Content have been moved to [src/cpp/cuda/reduce_sum/README.md](src/cpp/cuda/reduce_sum/README.md)
+- CUDA C Reduce Sum example: [src/cpp/cuda/reduce_sum/README.md](src/cpp/cuda/reduce_sum/README.md)
+- PyTorch ResNet152 Inference example: [src/python/resnet_inference/README.md](src/python/resnet_inference/README.md)
