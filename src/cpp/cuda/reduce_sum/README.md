@@ -93,14 +93,30 @@ If you don't have an environment, download the reports from [here](https://githu
 
 - [01_atomic_add_gmem.cu](src/cpp/cuda/reduce_sum/01_atomic_add_gmem.cu) (653.09 ms)
 
-  * Summary: Drain Stalls (Est. Speedup: 49.96%)
-  * Source: L17 `atomicAdd` Long Scoreboard and L19 Drain.
+  ![](assets/01_atomic_add_gmem_nsys.png)
+  ![](assets/01_atomic_add_gmem_explicit_sync_nsys.png)
+
+  > Observe: (1) CUDA HW: Kernel & Memory utilization. (2) Kernels/Memory: Memset -> initArray -> reduceSum -> Memcpy DtoH. (3) Threads -> CUDA API: `reduceSum` kernel launch is quick, waiting for the blocking `cudaMemcpy` call. (4) The lower image shows the timeline with explicit `cudaDeviceSynchronize` after the kernel, which shows the GPU/CPU timeline more clearly, and the GPU runtime should not be mistaken with the blocking `cudaMemcpy` call.
+
+  ![](assets/01_atomic_add_gmem_01.png)
+  ![](assets/01_atomic_add_gmem_02.png)
+  ![](assets/01_atomic_add_gmem_03.png)
+
+  > Observe: (1) Summary: Make sure to click on the target kernel row in the table. (2) `Drain Stalls (Est. Speedup: 49.96%)`. Click it and follow the links to L19/L17. (3) Source: `Stall Sampling`, L19 `Drain`, L17 atomicAdd `Long Scoreboard`. (4) Click the metric name for further information. (5) Summary: right-click the kernel and select `Add Baseline(s)` for later comparison.
+
+  Based on `Drain` and `Long Scoreboard`, we can infer that the bottleneck is due to global memory atomic operations. The next step is to optimize the kernel by using shared memory for partial reductions before writing to global memory.
 
 - [02_atomic_add_smem.cu](src/cpp/cuda/reduce_sum/02_atomic_add_smem.cu) (164.72 ms)
 
-  * Improved: Details > Memory Workload Analysis > Memory Chart > L2 Cache Writes
-  * Summary: Thread Divergence (Est. Speedup: 31.03%), Short Scoreboard Stalls (Est. Speedup: 15.31%), Barrier Stalls (Est. Speedup: 15.31%)
-  * Source: L22 `atomicAdd` Short Scoreboard and L26 Barrier.
+  ![](assets/02_atomic_add_smem_00.png)
+  ![](assets/02_atomic_add_smem_01.png)
+  ![](assets/02_atomic_add_smem_02.png)
+  ![](assets/02_atomic_add_smem_03.png)
+  ![](assets/02_atomic_add_smem_04.png)
+
+  > Observe: (0) Improved: significant reduction in `Details > Memory Workload Analysis > Memory Chart > L2 Cache Writes` by utilizing Shared Memory. (1) `Thread Divergence (Est. Speedup: 31.03%)`, `Short Scoreboard Stalls (Est. Speedup: 15.31%)`, `Barrier Stalls (Est. Speedup: 15.31%)`. Click the first metric and follow the links to L26/L22. (2) Source: `Stall Sampling`, L26 syncthreads `Barrier`, L22 atomicAdd `Short Scoreboard`.
+
+  Based on `Thread Divergence`, and `* Stalls`, we can infer that the bottleneck is due to thread divergence and synchronization overhead in the shared memory reduction. The next step is to optimize the reduction algorithm to minimize thread divergence and synchronization.
 
 - [03_interleaved_addressing.cu](src/cpp/cuda/reduce_sum/03_interleaved_addressing.cu) (27.00 ms)
 
