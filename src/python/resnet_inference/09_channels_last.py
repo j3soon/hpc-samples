@@ -92,7 +92,7 @@ def export_onnx(device):
     if CHANNELS_LAST_ONNX_PATH.exists():
         return
 
-    model = resnet152(weights=ResNet152_Weights.DEFAULT)
+    model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1)
     model = model.to(device, memory_format=torch.channels_last).eval()
     dummy = torch.randn(BATCH_SIZE, 3, 224, 224, device=device)
     dummy = dummy.contiguous(memory_format=torch.channels_last)

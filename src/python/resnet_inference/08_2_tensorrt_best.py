@@ -90,7 +90,7 @@ def export_onnx(device):
     if ONNX_PATH.exists():
         return
 
-    model = resnet152(weights=ResNet152_Weights.DEFAULT).to(device).eval()
+    model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1).to(device).eval()
     dummy = torch.randn(BATCH_SIZE, 3, 224, 224, device=device)
     torch.onnx.export(
         model,

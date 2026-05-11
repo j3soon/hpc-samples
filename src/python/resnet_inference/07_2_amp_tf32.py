@@ -89,7 +89,7 @@ def main():
 
     device = torch.device("cuda")
 
-    model = resnet152(weights=ResNet152_Weights.DEFAULT).to(device).eval()
+    model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1).to(device).eval()
     # Ref: https://docs.pytorch.org/docs/2.11/generated/torch.compile.html?utm_source=chatgpt.com
     model = torch.compile(model, mode="reduce-overhead", fullgraph=True)
     os.makedirs(DATA_DIR, exist_ok=True)
