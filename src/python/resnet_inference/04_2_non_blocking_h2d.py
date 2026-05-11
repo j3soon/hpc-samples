@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 
 import nvtx
@@ -11,7 +12,7 @@ from imagenetv2_pytorch import ImageNetV2Dataset
 
 DATA_DIR = "./data"
 BATCH_SIZE = 64
-MAX_IMAGES = BATCH_SIZE * 5
+MAX_IMAGES = 10000
 NUM_WORKERS = 8
 PREFETCH_FACTOR = 2
 WARMUP_RUNS = 3
@@ -32,20 +33,17 @@ def imagenet_preprocess():
 def main():
     assert torch.cuda.is_available(), "CUDA required."
 
+    max_images = int(sys.argv[1]) if len(sys.argv) > 1 else MAX_IMAGES
     device = torch.device("cuda")
-    print(f"device: {torch.cuda.get_device_name(device)}")
-    print(f"batch size: {BATCH_SIZE}")
-    print(f"num workers: {NUM_WORKERS}")
-    print(f"prefetch factor: {PREFETCH_FACTOR}")
 
-    model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1).to(device).eval()
+    model = resnet152(weights=ResNet152_Weights.DEFAULT).to(device).eval()
     os.makedirs(DATA_DIR, exist_ok=True)
     dataset = ImageNetV2Dataset(
         variant="matched-frequency",
         transform=imagenet_preprocess(),
         location=DATA_DIR,
     )
-    dataset = Subset(dataset, range(MAX_IMAGES))
+    dataset = Subset(dataset, range(max_images))
     loader = DataLoader(
         dataset,
         shuffle=False,
@@ -105,11 +103,11 @@ def main():
     top1 = 100.0 * top1_correct / len(dataset)
     top5 = 100.0 * top5_correct / len(dataset)
 
-    print(f"images: {len(dataset)}")
-    print(f"latency for {timed_images} images: {latency_ms:.3f} ms")
-    print(f"throughput: {fps:.2f} img/s")
-    print(f"top-1: {top1:.2f}%")
-    print(f"top-5: {top5:.2f}%")
+    print(
+        f"throughput: {fps:.2f} img/s, latency for {timed_images} images: "
+        f"{latency_ms:.3f} ms, images: {len(dataset)}, top-1: {top1:.2f}%, "
+        f"top-5: {top5:.2f}%"
+    )
 
 
 if __name__ == "__main__":

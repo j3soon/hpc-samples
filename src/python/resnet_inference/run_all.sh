@@ -2,8 +2,6 @@
 
 set -e
 
-mkdir -p profiles
-
 FILE_NAMES=(
     "01_base"
     "02_batch"
@@ -17,6 +15,7 @@ FILE_NAMES=(
     "07_1_amp_fp32"
     "07_2_amp_tf32"
     "07_3_amp_bf16"
+    "07_4_amp_fp16"
     "08_1_tensorrt_fp16"
     "08_2_tensorrt_best"
     "09_channels_last"
