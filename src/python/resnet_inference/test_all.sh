@@ -58,7 +58,8 @@ FILE_NAMES=(
     "07_3_amp_bf16"
     "08_1_tensorrt_fp16"
     "08_2_tensorrt_best"
-    "09_channels_last"
+    "09_dali"
+    "10_channels_last"
 )
 
 for FILE_NAME in "${FILE_NAMES[@]}"; do

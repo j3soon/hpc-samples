@@ -1,0 +1,249 @@
+import os
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import nvtx
+from nvidia.dali import fn, types
+from nvidia.dali.pipeline import pipeline_def
+from nvidia.dali.plugin.pytorch import DALIGenericIterator, LastBatchPolicy
+import tensorrt as trt
+import torch
+from torchvision.models import ResNet152_Weights, resnet152
+from imagenetv2_pytorch import ImageNetV2Dataset
+
+torch.backends.cudnn.benchmark = True
+
+
+DATA_DIR = "./data"
+RESULTS_DIR = "./results"
+BATCH_SIZE = 64
+MAX_IMAGES = 10000
+NUM_WORKERS = 32
+PREFETCH_FACTOR = 2
+WARMUP_RUNS = 3
+CHANNELS_LAST_ONNX_PATH = Path(RESULTS_DIR) / f"resnet152_bs{BATCH_SIZE}_channels_last.onnx"
+ENGINE_PATH = Path(RESULTS_DIR) / f"resnet152_bs{BATCH_SIZE}_channels_last_best.engine"
+
+
+def image_files(root, max_images):
+    files = []
+    labels = []
+    for class_dir in sorted(root.iterdir(), key=lambda path: int(path.name)):
+        for image_path in sorted(class_dir.glob("*.jpeg")):
+            files.append(str(image_path))
+            labels.append(int(class_dir.name))
+            if len(files) == max_images:
+                return files, labels
+    return files, labels
+
+
+@pipeline_def
+def dali_pipeline(files, labels):
+    encoded, targets = fn.readers.file(
+        files=files,
+        labels=labels,
+        random_shuffle=False,
+        pad_last_batch=True,
+        name="Reader",
+    )
+    images = fn.decoders.image(encoded, device="mixed", output_type=types.RGB)
+    images = fn.resize(images, resize_shorter=256)
+    images = fn.crop_mirror_normalize(
+        images,
+        dtype=types.FLOAT,
+        output_layout="HWC",
+        crop=(224, 224),
+        crop_pos_x=0.5,
+        crop_pos_y=0.5,
+        mean=[0.485 * 255.0, 0.456 * 255.0, 0.406 * 255.0],
+        std=[0.229 * 255.0, 0.224 * 255.0, 0.225 * 255.0],
+    )
+    return images, targets
+
+
+def export_onnx(device):
+    if CHANNELS_LAST_ONNX_PATH.exists():
+        return
+
+    model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1)
+    model = model.to(device, memory_format=torch.channels_last).eval()
+    dummy = torch.randn(BATCH_SIZE, 3, 224, 224, device=device)
+    dummy = dummy.contiguous(memory_format=torch.channels_last)
+    torch.onnx.export(
+        model,
+        dummy,
+        CHANNELS_LAST_ONNX_PATH,
+        input_names=["input"],
+        output_names=["logits"],
+        opset_version=21,
+    )
+
+
+def build_engine():
+    if ENGINE_PATH.exists():
+        return True
+
+    trtexec = shutil.which("trtexec")
+    if trtexec is None:
+        print("skip: trtexec not found")
+        return False
+
+    # Ref: https://docs.nvidia.com/deeplearning/tensorrt/latest/getting-started/quick-start-guide.html#convert-the-model
+    # Ref: https://docs.nvidia.com/deeplearning/tensorrt/latest/reference/command-line-programs.html
+    cmd = [
+        trtexec,
+        f"--onnx={CHANNELS_LAST_ONNX_PATH}",
+        f"--saveEngine={ENGINE_PATH}",
+        "--best",
+        "--inputIOFormats=fp32:hwc",
+        "--skipInference",
+    ]
+    subprocess.run(cmd, check=True)
+    return True
+
+
+def load_engine():
+    logger = trt.Logger(trt.Logger.WARNING)
+    runtime = trt.Runtime(logger)
+    # Ref: https://docs.nvidia.com/deeplearning/tensorrt/latest/inference-library/python-api-docs.html#deserializing-a-plan
+    with ENGINE_PATH.open("rb") as f:
+        model_data = f.read()
+    engine = runtime.deserialize_cuda_engine(model_data)
+
+    input_name = None
+    output_name = None
+    for i in range(engine.num_io_tensors):
+        name = engine.get_tensor_name(i)
+        if engine.get_tensor_mode(name) == trt.TensorIOMode.INPUT:
+            input_name = name
+        else:
+            output_name = name
+
+    return engine, input_name, output_name
+
+
+class TensorRTModel:
+    def __init__(self, device):
+        engine, input_name, output_name = load_engine()
+
+        # Ref: https://docs.nvidia.com/deeplearning/tensorrt/latest/inference-library/python-api-docs.html#performing-inference
+        self.context = engine.create_execution_context()
+        self.context.set_input_shape(input_name, (BATCH_SIZE, 3, 224, 224))
+        output_shape = tuple(self.context.get_tensor_shape(output_name))
+        output_dtype = {
+            trt.float32: torch.float32,
+            trt.float16: torch.float16,
+        }[engine.get_tensor_dtype(output_name)]
+
+        self.input_name = input_name
+        self.output_name = output_name
+        self.logits = torch.empty(output_shape, device=device, dtype=output_dtype)
+        self.stream = torch.cuda.Stream()
+
+    def __call__(self, images):
+        self.stream.wait_stream(torch.cuda.current_stream())
+        images.record_stream(self.stream)
+        self.logits.record_stream(self.stream)
+        self.context.set_tensor_address(self.input_name, images.data_ptr())
+        self.context.set_tensor_address(self.output_name, self.logits.data_ptr())
+        with torch.cuda.stream(self.stream):
+            assert self.context.execute_async_v3(self.stream.cuda_stream)
+        torch.cuda.current_stream().wait_stream(self.stream)
+        return self.logits
+
+
+def main():
+    assert torch.cuda.is_available(), "CUDA required."
+
+    max_images = int(sys.argv[1]) if len(sys.argv) > 1 else MAX_IMAGES
+    device = torch.device("cuda")
+
+    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(RESULTS_DIR, exist_ok=True)
+    export_onnx(device)
+    assert build_engine(), "Failed to build TensorRT engine"
+    model = TensorRTModel(device)
+
+    ImageNetV2Dataset(
+        variant="matched-frequency",
+        location=DATA_DIR,
+    )
+    files, labels = image_files(Path(DATA_DIR) / "ImageNetV2-matched-frequency", max_images)
+    pipe = dali_pipeline(
+        files=files,
+        labels=labels,
+        batch_size=BATCH_SIZE,
+        num_threads=NUM_WORKERS,
+        device_id=device.index or 0,
+        prefetch_queue_depth=PREFETCH_FACTOR,
+    )
+    loader = DALIGenericIterator(
+        pipe,
+        ["images", "targets"],
+        reader_name="Reader",
+        last_batch_policy=LastBatchPolicy.FILL,
+    )
+
+    with torch.inference_mode():
+        dummy = torch.randn(BATCH_SIZE, 3, 224, 224, device=device)
+        dummy = dummy.contiguous(memory_format=torch.channels_last)
+        with nvtx.annotate("warmup"):
+            for _ in range(WARMUP_RUNS):
+                model(dummy)
+    torch.cuda.synchronize()
+
+    top1_correct_gpu = torch.zeros((), device=device)
+    top5_correct_gpu = torch.zeros((), device=device)
+
+    with torch.inference_mode():
+        def run_batch(images, targets):
+            nonlocal top1_correct_gpu, top5_correct_gpu
+
+            with nvtx.annotate("forward_pass"):
+                logits = model(images)
+
+            with nvtx.annotate("accuracy"):
+                targets = targets.squeeze(-1).to(device, non_blocking=True)
+                _, pred = logits.topk(5, dim=1)
+                matches = pred.eq(targets.view(-1, 1))
+                top1_correct_gpu += matches[:, :1].sum()
+                top5_correct_gpu += matches.sum()
+
+        loader_iter = iter(loader)
+        batch = next(loader_iter)[0]
+        images = batch["images"]
+        targets = batch["targets"]
+        with nvtx.annotate("first_batch"):
+            run_batch(images, targets)
+
+        torch.cuda.synchronize()
+        start = time.perf_counter()
+
+        for batch in loader_iter:
+            images = batch[0]["images"]
+            targets = batch[0]["targets"]
+            run_batch(images, targets)
+
+        torch.cuda.synchronize()
+        elapsed_s = time.perf_counter() - start
+
+    latency_ms = elapsed_s * 1000.0
+    timed_images = len(files) - BATCH_SIZE
+    fps = timed_images / elapsed_s
+    top1_correct = top1_correct_gpu.item()
+    top5_correct = top5_correct_gpu.item()
+    top1 = 100.0 * top1_correct / len(files)
+    top5 = 100.0 * top5_correct / len(files)
+
+    print(
+        f"throughput: {fps:.2f} img/s, latency for {timed_images} images: "
+        f"{latency_ms:.3f} ms, images: {len(files)}, top-1: {top1:.2f}%, "
+        f"top-5: {top5:.2f}%"
+    )
+
+
+if __name__ == "__main__":
+    main()

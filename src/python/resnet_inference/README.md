@@ -40,7 +40,8 @@ TORCH_LOGS="cudagraphs,recompiles" python 07_3_amp_bf16.py
 TORCH_LOGS="cudagraphs,recompiles" python 07_4_amp_fp16.py
 python 08_1_tensorrt_fp16.py
 python 08_2_tensorrt_best.py
-python 09_channels_last.py
+python 09_dali.py
+python 10_channels_last.py
 ```
 
 ## Profile
@@ -66,7 +67,8 @@ FILES=(
   07_4_amp_fp16
   08_1_tensorrt_fp16
   08_2_tensorrt_best
-  09_channels_last
+  09_dali
+  10_channels_last
 )
 
 for FILE in "${FILES[@]}"; do

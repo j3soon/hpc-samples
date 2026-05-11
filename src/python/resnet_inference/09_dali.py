@@ -6,11 +6,11 @@ import time
 from pathlib import Path
 
 import nvtx
+from nvidia.dali import fn, types
+from nvidia.dali.pipeline import pipeline_def
+from nvidia.dali.plugin.pytorch import DALIGenericIterator, LastBatchPolicy
 import tensorrt as trt
 import torch
-from torch.utils.data import DataLoader, Subset
-from torch.utils.data.dataloader import default_collate
-from torchvision import transforms
 from torchvision.models import ResNet152_Weights, resnet152
 from imagenetv2_pytorch import ImageNetV2Dataset
 
@@ -25,81 +25,56 @@ NUM_WORKERS = 32
 PREFETCH_FACTOR = 2
 WARMUP_RUNS = 3
 ONNX_PATH = Path(RESULTS_DIR) / f"resnet152_bs{BATCH_SIZE}.onnx"
-CHANNELS_LAST_ONNX_PATH = Path(RESULTS_DIR) / f"resnet152_bs{BATCH_SIZE}_channels_last.onnx"
-ENGINE_PATH = Path(RESULTS_DIR) / f"resnet152_bs{BATCH_SIZE}_channels_last_best.engine"
+ENGINE_PATH = Path(RESULTS_DIR) / f"resnet152_bs{BATCH_SIZE}_best.engine"
 
 
-# Ref: https://pytorch.org/hub/pytorch_vision_resnet/
-def imagenet_preprocess():
-    return transforms.Compose(
-        [
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
+def image_files(root, max_images):
+    files = []
+    labels = []
+    for class_dir in sorted(root.iterdir(), key=lambda path: int(path.name)):
+        for image_path in sorted(class_dir.glob("*.jpeg")):
+            files.append(str(image_path))
+            labels.append(int(class_dir.name))
+            if len(files) == max_images:
+                return files, labels
+    return files, labels
+
+
+# Ref: https://docs.nvidia.com/deeplearning/dali/user-guide/docs/index.html
+@pipeline_def
+def dali_pipeline(files, labels):
+    encoded, targets = fn.readers.file(
+        files=files,
+        labels=labels,
+        random_shuffle=False,
+        pad_last_batch=True,
+        name="Reader",
     )
-
-
-def padded_collate(batch):
-    images, targets = default_collate(batch)
-
-    if images.shape[0] < BATCH_SIZE:
-        pad_size = BATCH_SIZE - images.shape[0]
-        image_padding = images.new_zeros((pad_size, *images.shape[1:]))
-        target_padding = targets.new_zeros((pad_size,))
-        images = torch.cat((images, image_padding), dim=0)
-        targets = torch.cat((targets, target_padding), dim=0)
-
-    images = images.contiguous(memory_format=torch.channels_last)
+    images = fn.decoders.image(encoded, device="mixed", output_type=types.RGB)
+    images = fn.resize(images, resize_shorter=256)
+    images = fn.crop_mirror_normalize(
+        images,
+        dtype=types.FLOAT,
+        output_layout="CHW",
+        crop=(224, 224),
+        crop_pos_x=0.5,
+        crop_pos_y=0.5,
+        mean=[0.485 * 255.0, 0.456 * 255.0, 0.406 * 255.0],
+        std=[0.229 * 255.0, 0.224 * 255.0, 0.225 * 255.0],
+    )
     return images, targets
 
 
-# Ref: https://github.com/NVIDIA/apex/blob/master/examples/imagenet/main_amp.py
-class DataPrefetcher:
-    def __init__(self, loader, device):
-        self.loader = iter(loader)
-        self.device = device
-        self.stream = torch.cuda.Stream()
-        self.preload()
-
-    def preload(self):
-        try:
-            with nvtx.annotate("dataloader_next"):
-                self.next_images, self.next_targets = next(self.loader)
-        except StopIteration:
-            self.next_images = None
-            self.next_targets = None
-            return
-
-        with torch.cuda.stream(self.stream):
-            with nvtx.annotate("prefetch_h2d"):
-                self.next_images = self.next_images.to(self.device, non_blocking=True)
-                self.next_targets = self.next_targets.to(self.device, non_blocking=True)
-
-    def next(self):
-        torch.cuda.current_stream().wait_stream(self.stream)
-        images = self.next_images
-        targets = self.next_targets
-        if images is not None:
-            images.record_stream(torch.cuda.current_stream())
-            targets.record_stream(torch.cuda.current_stream())
-        self.preload()
-        return images, targets
-
-
 def export_onnx(device):
-    if CHANNELS_LAST_ONNX_PATH.exists():
+    if ONNX_PATH.exists():
         return
 
-    model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1)
-    model = model.to(device, memory_format=torch.channels_last).eval()
+    model = resnet152(weights=ResNet152_Weights.IMAGENET1K_V1).to(device).eval()
     dummy = torch.randn(BATCH_SIZE, 3, 224, 224, device=device)
-    dummy = dummy.contiguous(memory_format=torch.channels_last)
     torch.onnx.export(
         model,
         dummy,
-        CHANNELS_LAST_ONNX_PATH,
+        ONNX_PATH,
         input_names=["input"],
         output_names=["logits"],
         opset_version=21,
@@ -119,10 +94,9 @@ def build_engine():
     # Ref: https://docs.nvidia.com/deeplearning/tensorrt/latest/reference/command-line-programs.html
     cmd = [
         trtexec,
-        f"--onnx={CHANNELS_LAST_ONNX_PATH}",
+        f"--onnx={ONNX_PATH}",
         f"--saveEngine={ENGINE_PATH}",
         "--best",
-        "--inputIOFormats=fp32:hwc",
         "--skipInference",
     ]
     subprocess.run(cmd, check=True)
@@ -191,26 +165,28 @@ def main():
     assert build_engine(), "Failed to build TensorRT engine"
     model = TensorRTModel(device)
 
-    dataset = ImageNetV2Dataset(
+    ImageNetV2Dataset(
         variant="matched-frequency",
-        transform=imagenet_preprocess(),
         location=DATA_DIR,
     )
-    dataset = Subset(dataset, range(max_images))
-    loader = DataLoader(
-        dataset,
-        shuffle=False,
+    files, labels = image_files(Path(DATA_DIR) / "ImageNetV2-matched-frequency", max_images)
+    pipe = dali_pipeline(
+        files=files,
+        labels=labels,
         batch_size=BATCH_SIZE,
-        num_workers=NUM_WORKERS,
-        pin_memory=True,
-        persistent_workers=True,
-        prefetch_factor=PREFETCH_FACTOR,
-        collate_fn=padded_collate,
+        num_threads=NUM_WORKERS,
+        device_id=device.index or 0,
+        prefetch_queue_depth=PREFETCH_FACTOR,
+    )
+    loader = DALIGenericIterator(
+        pipe,
+        ["images", "targets"],
+        reader_name="Reader",
+        last_batch_policy=LastBatchPolicy.FILL,
     )
 
     with torch.inference_mode():
         dummy = torch.randn(BATCH_SIZE, 3, 224, 224, device=device)
-        dummy = dummy.contiguous(memory_format=torch.channels_last)
         with nvtx.annotate("warmup"):
             for _ in range(WARMUP_RUNS):
                 model(dummy)
@@ -227,38 +203,41 @@ def main():
                 logits = model(images)
 
             with nvtx.annotate("accuracy"):
+                targets = targets.squeeze(-1).to(device, non_blocking=True)
                 _, pred = logits.topk(5, dim=1)
                 matches = pred.eq(targets.view(-1, 1))
                 top1_correct_gpu += matches[:, :1].sum()
                 top5_correct_gpu += matches.sum()
 
-        prefetcher = DataPrefetcher(loader, device)
-        images, targets = prefetcher.next()
+        loader_iter = iter(loader)
+        batch = next(loader_iter)[0]
+        images = batch["images"]
+        targets = batch["targets"]
         with nvtx.annotate("first_batch"):
             run_batch(images, targets)
 
         torch.cuda.synchronize()
         start = time.perf_counter()
 
-        images, targets = prefetcher.next()
-        while images is not None:
+        for batch in loader_iter:
+            images = batch[0]["images"]
+            targets = batch[0]["targets"]
             run_batch(images, targets)
-            images, targets = prefetcher.next()
 
         torch.cuda.synchronize()
         elapsed_s = time.perf_counter() - start
 
     latency_ms = elapsed_s * 1000.0
-    timed_images = len(dataset) - BATCH_SIZE
+    timed_images = len(files) - BATCH_SIZE
     fps = timed_images / elapsed_s
     top1_correct = top1_correct_gpu.item()
     top5_correct = top5_correct_gpu.item()
-    top1 = 100.0 * top1_correct / len(dataset)
-    top5 = 100.0 * top5_correct / len(dataset)
+    top1 = 100.0 * top1_correct / len(files)
+    top5 = 100.0 * top5_correct / len(files)
 
     print(
         f"throughput: {fps:.2f} img/s, latency for {timed_images} images: "
-        f"{latency_ms:.3f} ms, images: {len(dataset)}, top-1: {top1:.2f}%, "
+        f"{latency_ms:.3f} ms, images: {len(files)}, top-1: {top1:.2f}%, "
         f"top-5: {top5:.2f}%"
     )
 
