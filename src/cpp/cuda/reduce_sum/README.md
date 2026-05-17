@@ -91,7 +91,7 @@ and run all tests:
 
 If you don't have an environment, download the `reduce_sum_L40_results.zip` reports from [here](https://github.com/j3soon/hpc-samples/releases).
 
-- [01_atomic_add_gmem.cu](src/cpp/cuda/reduce_sum/01_atomic_add_gmem.cu) (653.09 ms)
+- [01_atomic_add_gmem.cu](01_atomic_add_gmem.cu) (653.09 ms)
 
   ![](assets/01_atomic_add_gmem_nsys.png)
   ![](assets/01_atomic_add_gmem_explicit_sync_nsys.png)
@@ -106,7 +106,7 @@ If you don't have an environment, download the `reduce_sum_L40_results.zip` repo
 
   Based on `Drain` and `Long Scoreboard`, we can infer that the bottleneck is due to global memory atomic operations. The next step is to optimize the kernel by using shared memory for partial reductions before writing to global memory.
 
-- [02_atomic_add_smem.cu](src/cpp/cuda/reduce_sum/02_atomic_add_smem.cu) (164.72 ms)
+- [02_atomic_add_smem.cu](02_atomic_add_smem.cu) (164.72 ms)
 
   ![](assets/02_atomic_add_smem_00.png)
   ![](assets/02_atomic_add_smem_01.png)
@@ -118,47 +118,48 @@ If you don't have an environment, download the `reduce_sum_L40_results.zip` repo
 
   Based on `Thread Divergence`, and `* Stalls`, we can infer that the bottleneck is due to thread divergence and synchronization overhead in the shared memory reduction. The next step is to optimize the reduction algorithm to minimize thread divergence and synchronization.
 
-- [03_interleaved_addressing.cu](src/cpp/cuda/reduce_sum/03_interleaved_addressing.cu) (27.00 ms)
+- [03_interleaved_addressing.cu](03_interleaved_addressing.cu) (27.00 ms)
 
   * Improved: Shared Memory Bottleneck
   * Summary: Uncoalesced Shared Accesses (Est. Speedup: 37.79%), Shared Load Bank Conflicts (Est. Speedup: 24.17%), Thread Divergence (Est. Speedup: 18.76%)
 
-- [04_interleaved_addressing_non_divergent.cu](src/cpp/cuda/reduce_sum/04_interleaved_addressing_non_divergent.cu) (20.98 ms)
+- [04_interleaved_addressing_non_divergent.cu](04_interleaved_addressing_non_divergent.cu) (20.98 ms)
 
   * Improved: Thread Divergence
   * Summary: Uncoalesced Shared Accesses (Est. Speedup: 70.86%), Shared Load Bank Conflicts (Est. Speedup: 60.72%), Shared Store Bank Conflicts (Est. Speedup: 51.40%)
 
-- [05_sequential_addressing.cu](src/cpp/cuda/reduce_sum/05_sequential_addressing.cu) (17.95 ms)
+- [05_sequential_addressing.cu](05_sequential_addressing.cu) (17.95 ms)
 
   * Improved: Shared Memory Bank Conflicts
   * Summary: Thread Divergence (Est. Speedup: 36.69%)
 
-- [06_first_add_during_load.cu](src/cpp/cuda/reduce_sum/06_first_add_during_load.cu) (9.28 ms)
+- [06_first_add_during_load.cu](06_first_add_during_load.cu) (9.28 ms)
 
   * Improved: Thread Divergence (due to half of the threads in the block are idle after loading to shared memory). Details > Source Counter > Branch Instructions.
   * Summary: Thread Divergence (Est. Speedup: 34.89%)
 
-- [07_unroll_last_warp.cu](src/cpp/cuda/reduce_sum/07_unroll_last_warp.cu) (5.05 ms)
+- [07_unroll_last_warp.cu](07_unroll_last_warp.cu) (5.05 ms)
 
   * Improved: Reduced thread synchronization at previous L22 and current L36 Barrier. Details > Source Counter > Branch Instructions.
   * Summary: Achieved Occupancy (Est. Speedup: 8.14%), Long Scoreboard Stalls (Est. Speedup: 8.14%)
 
-- [08_complete_unroll.cu](src/cpp/cuda/reduce_sum/08_complete_unroll.cu) (4.88 ms)
+- [08_complete_unroll.cu](08_complete_unroll.cu) (4.88 ms)
 
   * Improved: Details > Source Counter > Branch Instructions.
   * Summary: Achieved Occupancy (Est. Speedup: 5.02%), Long Scoreboard Stalls (Est. Speedup: 5.02%)
 
-- [09_warp_shuffle.cu](src/cpp/cuda/reduce_sum/09_warp_shuffle.cu) (4.79 ms)
+- [09_warp_shuffle.cu](09_warp_shuffle.cu) (4.79 ms)
 
   * Improved: Details > Memory Workload Analysis > Memory Chart > Shared Memory
   * Summary: Achieved Occupancy (Est. Speedup: 3.18%), Long Scoreboard Stalls (Est. Speedup: 3.18%)
+  * Note: In modern CUDA programming, you might want to switch to [cooperative groups](https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/#update_legacy_warp-level_programming) instead.
 
-- [10_grid_stride_loop.cu](src/cpp/cuda/reduce_sum/10_grid_stride_loop.cu) (4.78 ms)
+- [10_grid_stride_loop.cu](10_grid_stride_loop.cu) (4.78 ms)
 
   * Improved: Details > Instruction Statistics > Executed Instructions
   * Summary: Achieved Occupancy (Est. Speedup: 2.99%), Long Scoreboard Stalls (Est. Speedup: 2.99%)
 
-- [11_grid_size.cu](src/cpp/cuda/reduce_sum/11_grid_size.cu) (4.75 ms)
+- [11_grid_size.cu](11_grid_size.cu) (4.75 ms)
 
   * Improved: Details > Occupancy > Achieved Occupancy
   * Summary: Long Scoreboard Stalls (Est. Speedup: 2.24%)

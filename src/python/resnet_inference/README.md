@@ -6,6 +6,8 @@
 
 Downloading the two Nsight GUIs are sufficient, as we have provide pre-profiled reports for the examples in the repository.
 
+Note: We did not include PyTorch's profiling flags `--pytorch=functions-trace,autograd-shapes-nvtx` in the provided reports, as they can increase the file size and is not necessary for the examples. You can add them yourself if you want to see PyTorch function names and autograd shapes in the Nsight Systems timeline. See [profile_all.sh](profile_all.sh) for more details.
+
 ## (Optional) Profiler and Container Setup
 
 Launch container with [`SYS_ADMIN` caps](https://docs.nvidia.com/nsight-systems/UserGuide/index.html#container-and-scheduler-support):
@@ -77,6 +79,7 @@ If you don't have an environment, download the `resnet_inference_L40_results.zip
 - [06_2_cuda_graph_fix.py](06_2_cuda_graph_fix.py) (~1555 img/s)
 
   * Improved: stable shape for CUDA graph capture.
+  * Note: Manual CUDA graph capture and replay isn't used here for simplicity.
 
 - [06_3_benchmark.py](06_3_benchmark.py) (~1562 img/s)
 
@@ -112,9 +115,9 @@ If you don't have an environment, download the `resnet_inference_L40_results.zip
 
 - [10_channels_last.py](10_channels_last.py) (~9249 img/s)
 
-  * Improved: DALI with TensorRT HWC input format.
+  * Improved: DALI with TensorRT HWC [channels last input format](https://docs.pytorch.org/tutorials/intermediate/memory_format_tutorial.html#performance-gains).
 
-Further optimizations may include using [lower-precision model with calibration data](https://developer.nvidia.com/blog/model-quantization-post-training-quantization-using-nvidia-model-optimizer/), more optimized pipeline, data format, or code-level accuracy calculation improvements.
+Further optimizations may include better file format (e.g., [WebDataset `.tar` shards](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/examples/general/data_loading/webdataset_reader/pipeline_mode.html)), more optimized pipeline, using [lower-precision model with calibration data](https://developer.nvidia.com/blog/model-quantization-post-training-quantization-using-nvidia-model-optimizer/), or code-level accuracy calculation optimizations.
 
 **Runtime statistics summary**:
 
