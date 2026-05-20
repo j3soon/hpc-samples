@@ -51,6 +51,11 @@ RUN cd /workspace/nvbandwidth_mpi \
     && cmake -DMULTINODE=1 . \
     && make -j$(nproc)
 
+# gpu-burn
+RUN git clone --depth 1 https://github.com/wilicc/gpu-burn
+RUN cd /workspace/gpu-burn \
+    && make -j$(nproc) CUDAPATH=$CUDA_PATH
+
 # Install Jupyter Lab for easy access
 RUN apt-get update && apt-get install -y \
     python3-pip \
