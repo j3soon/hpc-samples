@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 LOGFILE="./intranode-comm-test_$(date +%Y%m%d_%H%M%S_%N).log"
 mkdir -p "$(dirname "$LOGFILE")"
 
@@ -12,7 +14,7 @@ echo "===== Script started at $(date) ====="
 # Enable command tracing (so commands themselves are logged)
 set -x
 
-echo $NODE_NAME # in case running on K8s
+echo "${NODE_NAME:-}" # in case running on K8s
 
 nvidia-smi
 
@@ -22,10 +24,22 @@ nvidia-smi topo -m
 
 cd /workspace
 echo "Running p2pBandwidthLatencyTest..."
-# For CUDA 12.4
-./cuda-samples/bin/x86_64/linux/release/p2pBandwidthLatencyTest
-# For CUDA 13.0
-./cuda-samples/build/Samples/5_Domain_Specific/p2pBandwidthLatencyTest/p2pBandwidthLatencyTest
+p2p_test=""
+for candidate in \
+  ./cuda-samples/build/Samples/5_Domain_Specific/p2pBandwidthLatencyTest/p2pBandwidthLatencyTest \
+  ./cuda-samples/bin/x86_64/linux/release/p2pBandwidthLatencyTest; do
+  if [[ -x "${candidate}" ]]; then
+    p2p_test="${candidate}"
+    break
+  fi
+done
+
+if [[ -z "${p2p_test}" ]]; then
+  echo "Could not find the p2pBandwidthLatencyTest executable." >&2
+  exit 1
+fi
+
+"${p2p_test}"
 
 echo "Running nvbandwidth verbose mode..."
 ./nvbandwidth/nvbandwidth -v
